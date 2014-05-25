@@ -4,6 +4,7 @@ require 'paper/nodes/text'
 require 'paper/nodes/paragraph'
 require 'paper/nodes/list'
 require 'paper/nodes/list_item'
+require 'paper/nodes/hyperlink'
 
 module Paper
   class Document

@@ -12,15 +12,17 @@ module Paper
       document = docx_archive.read 'word/document.xml'
       styles = docx_archive.read 'word/styles.xml'
       numbering = docx_archive.read 'word/numbering.xml'
+      relationships = docx_archive.read 'word/_rels/document.xml.rels'
 
-      paper_docx = new document, styles, numbering
+      paper_docx = new document, styles, numbering, relationships
       paper_docx.paper_doc
     end
 
-    def initialize(document_xml, styles_xml, numbering_xml)
+    def initialize(document_xml, styles_xml, numbering_xml, relationships_xml)
       @paper_doc = Paper::Document.new
       parse_styles styles_xml
       parse_numbering numbering_xml
+      parse_relationships relationships_xml
       parse document_xml
     end
 
@@ -82,25 +84,42 @@ module Paper
       end
     end
 
+    def parse_relationships(relationships_xml)
+      @relationships = {}
+      xml = Nokogiri::XML(relationships_xml)
+      xml.css("Relationship").each do |rel| # Nokogiri doesn't seem to like XPath here for some reason
+        @relationships[rel['Id']] = rel['Target']
+      end
+    end
+
+    def _node_parse_runs(node)
+      texts = []
+      node.children.each do |run_xml|
+        case run_xml.name
+          when 'r' 
+            text = Paper::Node::Text.new
+            text.content = run_xml.xpath('./w:t')[0].content
+            get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
+            texts << text
+          when 'hyperlink'
+            link = Paper::Node::Hyperlink.new
+            link.href = @relationships[run_xml['r:id']]
+            _node_parse_runs(run_xml).each {|r| link.append(r)}
+            texts << link
+        end
+      end
+      texts
+    end
+
     def _node_parse_paragraph(node)
       paragraph = Paper::Node::Paragraph.new
-      node.xpath('./w:r').each do |run_xml|
-        text = Paper::Node::Text.new
-        text.content = run_xml.xpath('./w:t')[0].content
-        get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
-        paragraph.append(text)
-      end
+      _node_parse_runs(node).each {|r| paragraph.append(r)}
       paragraph
     end
 
     def _node_parse_list(node)
       list_item = Paper::Node::ListItem.new
-      node.xpath('./w:r').each do |run_xml|
-        text = Paper::Node::Text.new
-        text.content = run_xml.xpath('./w:t')[0].content
-        get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
-        list_item.append(text)
-      end
+      _node_parse_runs(node).each {|r| list_item.append(r)}
       level = node.xpath(".//w:numPr/w:ilvl")[0]['w:val'].to_i
       numbering_scheme = node.xpath(".//w:numPr/w:numId")[0]['w:val'].to_i
 
