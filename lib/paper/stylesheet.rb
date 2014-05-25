@@ -1,7 +1,12 @@
 module Paper
   class Stylesheet
     
-    SUPPORTED_STYLES = [:bold, :italic, :underline]
+    SUPPORTED_STYLES = [
+      # Inline styles
+      :bold, :italic, :underline,
+      # List enumeration styles
+      :bullet, :decimal, :lowerLetter, :lowerRoman
+    ]
 
     def initialize(styles)
       @styles = []

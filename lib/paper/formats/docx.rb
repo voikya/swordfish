@@ -11,33 +11,42 @@ module Paper
       docx_archive = Zip::File.open(filepath)
       document = docx_archive.read 'word/document.xml'
       styles = docx_archive.read 'word/styles.xml'
+      numbering = docx_archive.read 'word/numbering.xml'
 
-      paper_docx = new document, styles
+      paper_docx = new document, styles, numbering
       paper_docx.paper_doc
     end
 
-    def initialize(document_xml, styles_xml)
+    def initialize(document_xml, styles_xml, numbering_xml)
       @paper_doc = Paper::Document.new
-      parse document_xml, styles_xml
+      parse_styles styles_xml
+      parse_numbering numbering_xml
+      parse document_xml
     end
 
   private
 
-    def parse(document_xml, styles_xml)
+    def flush
+      @paper_doc.append(@buffer) if @buffer
+      @buffer = nil
+    end
+
+    def parse(document_xml)
       @xml = Nokogiri::XML(document_xml)
       @xml.xpath('//w:body').children.each do |node|
         case node.name
           when 'p'
-            paragraph = Paper::Node::Paragraph.new
-            node.xpath('./w:r').each do |run_xml|
-              text = Paper::Node::Text.new
-              text.content = run_xml.xpath('./w:t')[0].content
-              get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
-              paragraph.append(text)
+            if node.xpath('.//w:numPr').length == 0
+              # Regular paragraph
+              flush
+              @paper_doc.append _node_parse_paragraph(node)
+            else
+              # List paragraph
+              _node_parse_list(node)
             end
-            @paper_doc.append paragraph
         end
       end
+      flush
     end
 
     def get_styles_for_node(paper_node, xml_nodeset)
@@ -54,5 +63,70 @@ module Paper
       end
     end
 
+    def parse_styles(styles_xml)
+    end
+
+    def parse_numbering(numbering_xml)
+      @numbering = {}
+      xml = Nokogiri::XML(numbering_xml)
+      xml.xpath("//w:num").each do |num|
+        numId = num['w:numId'].to_i
+        abstractNumId = num.xpath("./w:abstractNumId")[0]['w:val'].to_i
+        abstract_numbering = {}
+        xml.xpath("//w:abstractNum[@w:abstractNumId='#{abstractNumId}']/w:lvl").each do |level_format|
+          level = level_format['w:ilvl'].to_i
+          format = level_format.xpath("./w:numFmt")[0]['w:val']
+          abstract_numbering[level] = format
+        end
+        @numbering[numId] = abstract_numbering
+      end
+    end
+
+    def _node_parse_paragraph(node)
+      paragraph = Paper::Node::Paragraph.new
+      node.xpath('./w:r').each do |run_xml|
+        text = Paper::Node::Text.new
+        text.content = run_xml.xpath('./w:t')[0].content
+        get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
+        paragraph.append(text)
+      end
+      paragraph
+    end
+
+    def _node_parse_list(node)
+      list_item = Paper::Node::ListItem.new
+      node.xpath('./w:r').each do |run_xml|
+        text = Paper::Node::Text.new
+        text.content = run_xml.xpath('./w:t')[0].content
+        get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
+        list_item.append(text)
+      end
+      level = node.xpath(".//w:numPr/w:ilvl")[0]['w:val'].to_i
+      numbering_scheme = node.xpath(".//w:numPr/w:numId")[0]['w:val'].to_i
+
+      unless @buffer
+        @buffer = Paper::Node::List.new
+        @buffer.stylize @numbering[numbering_scheme][level].to_sym
+      end
+
+      if @buffer.depth_of_final_node >= level
+        # Add sibling to existing list
+        target = @buffer
+        level.times do
+          target = target.last_list_item.nested_list
+        end
+        target.append list_item
+      elsif @buffer.depth_of_final_node < level
+        # Add new nested list
+        target = @buffer
+        (level - 1).times do
+          target = target.last_list_item.nested_list
+        end
+        list = Paper::Node::List.new
+        list.append list_item
+        list.stylize @numbering[numbering_scheme][level].to_sym
+        target.last_list_item.append list
+      end
+    end
   end
 end

@@ -2,6 +2,8 @@ require 'paper/stylesheet'
 require 'paper/nodes/base'
 require 'paper/nodes/text'
 require 'paper/nodes/paragraph'
+require 'paper/nodes/list'
+require 'paper/nodes/list_item'
 
 module Paper
   class Document
