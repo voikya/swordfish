@@ -3,7 +3,7 @@ module Paper
     
     SUPPORTED_STYLES = [
       # Inline styles
-      :bold, :italic, :underline,
+      :bold, :italic, :underline, :superscript, :subscript, :strikethrough,
       # List enumeration styles
       :bullet, :decimal, :lowerLetter, :lowerRoman
     ]

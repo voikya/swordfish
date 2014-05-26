@@ -61,6 +61,14 @@ module Paper
             paper_node.stylize :bold
           when 'u'
             paper_node.stylize :underline
+          when 'strike'
+            paper_node.stylize :strikethrough
+          when 'vertAlign'
+            if style_node['w:val'] == 'superscript'
+              paper_node.stylize :superscript
+            elsif style_node['w:val'] == 'subscript'
+              paper_node.stylize :subscript
+            end
         end
       end
     end
