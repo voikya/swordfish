@@ -46,6 +46,8 @@ module Paper
               # List paragraph
               _node_parse_list(node)
             end
+          when 'tbl'
+            @paper_doc.append _node_parse_table(node)
         end
       end
       flush
@@ -155,5 +157,47 @@ module Paper
         target.last_list_item.append list
       end
     end
+
+    def _node_parse_table(node)
+      table = Paper::Node::Table.new
+      node.xpath("./w:tr").each do |row|
+        table.append _node_parse_table_row(row)
+      end
+      table
+    end
+
+    def _node_parse_table_row(node)
+      row = Paper::Node::TableRow.new
+      node.xpath('./w:tc').each do |cell|
+        row.append _node_parse_table_cell(cell)
+      end
+      row
+    end
+
+    def _node_parse_table_cell(node)
+      cell = Paper::Node::TableCell.new
+      extra_cells = []
+
+      node.xpath("./w:p").each do |paragraph|
+        cell.append _node_parse_paragraph(paragraph)
+      end
+      if node.xpath("./w:tcPr/w:vMerge").length > 0 && node.xpath("./w:tcPr/w:vMerge")[0]['w:val'].nil?
+        cell.merge_up = true
+      end
+      if node.xpath("./w:tcPr/w:gridSpan").length > 0
+        node.xpath("./w:tcPr/w:gridSpan")[0]['w:val'].to_i.-(1).times do
+          c = Paper::Node::TableCell.new
+          c.merge_left = true
+          extra_cells << c
+        end
+      end
+
+      if extra_cells.empty?
+        return cell
+      else
+        return [cell] + extra_cells
+      end
+    end
+
   end
 end

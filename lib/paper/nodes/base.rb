@@ -14,6 +14,7 @@ module Paper
       def append(node)
         @children ||= []
         @children << node
+        @children.flatten!
       end
 
       def stylize(styles)
@@ -22,6 +23,12 @@ module Paper
 
       def to_html
         raise NotImplementedError
+      end
+
+      def inform!(hash)
+        hash.each do |k, v|
+          instance_variable_set "@#{k}", v
+        end
       end
 
     end
