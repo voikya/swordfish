@@ -8,7 +8,8 @@ module Swordfish
         if @content
           "<p>#{@content}</p>"
         else
-          "<p>#{@children.map(&:to_html).join}</p>"
+          text = @children.map(&:to_html).join
+          "<p>#{text}</p>" unless text.length.zero?
         end
       end
 
