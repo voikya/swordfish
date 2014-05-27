@@ -21,7 +21,7 @@ module Paper
 
       def to_html
         collapse_cells!
-        "<table>#{@children.map(&:to_html).join}</table>"
+        "<table><tbody>#{@children.map(&:to_html).join}</tbody></table>"
       end
 
       private
