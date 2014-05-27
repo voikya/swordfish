@@ -1,15 +1,15 @@
 require 'zip'
 require 'nokogiri'
-require 'paper/document'
+require 'swordfish/document'
 
-# Paper::DOCX defines a parser for .docx (Office OpenXML) formats
+# Swordfish::DOCX defines a parser for .docx (Office OpenXML) formats
 
-module Paper
+module Swordfish
   class DOCX
 
-    attr_reader :paper_doc   # The Paper::Document corresponding to the parsed document
+    attr_reader :swordfish_doc   # The Swordfish::Document corresponding to the parsed document
     
-    # Parse a document and return a Paper::Document object
+    # Parse a document and return a Swordfish::Document object
     def self.open(filepath)
       # .docx is a zipped file format consisting of several XML files.
       # Read in the content of each needed file.
@@ -19,13 +19,13 @@ module Paper
       numbering = docx_archive.read 'word/numbering.xml'
       relationships = docx_archive.read 'word/_rels/document.xml.rels'
 
-      # Parse the XML files and generate the Paper::Document
-      paper_docx = new document, styles, numbering, relationships
-      paper_docx.paper_doc
+      # Parse the XML files and generate the Swordfish::Document
+      swordfish_docx = new document, styles, numbering, relationships
+      swordfish_docx.swordfish_doc
     end
 
     def initialize(document_xml, styles_xml, numbering_xml, relationships_xml)
-      @paper_doc = Paper::Document.new
+      @swordfish_doc = Swordfish::Document.new
       parse_styles styles_xml
       parse_numbering numbering_xml
       parse_relationships relationships_xml
@@ -34,11 +34,11 @@ module Paper
 
     private
 
-    # Take the contents of the build buffer and flush them into the Paper::Document object.
+    # Take the contents of the build buffer and flush them into the Swordfish::Document object.
     # This buffer is needed for certain docx constructs that consist of multiple top-level
-    # elements but correspond to a single Paper::Node, such as lists.
+    # elements but correspond to a single Swordfish::Node, such as lists.
     def flush
-      @paper_doc.append(@buffer) if @buffer
+      @swordfish_doc.append(@buffer) if @buffer
       @buffer = nil
     end
 
@@ -53,7 +53,7 @@ module Paper
             if node.xpath('.//w:numPr').length == 0
               # Regular paragraph
               flush
-              @paper_doc.append _node_parse_paragraph(node)
+              @swordfish_doc.append _node_parse_paragraph(node)
             else
               # List paragraph
               # (Don't flush because we need to first ensure the list is fully parsed)
@@ -61,30 +61,30 @@ module Paper
             end
           when 'tbl'
             flush
-            @paper_doc.append _node_parse_table(node)
+            @swordfish_doc.append _node_parse_table(node)
         end
       end
       flush
     end
 
-    # Parse styles out of a docx element property nodeset (*Pr) and stylize the Paper::Node
-    def get_styles_for_node(paper_node, xml_nodeset)
+    # Parse styles out of a docx element property nodeset (*Pr) and stylize the Swordfish::Node
+    def get_styles_for_node(swordfish_node, xml_nodeset)
       return unless xml_nodeset
       xml_nodeset.children.each do |style_node|
         case style_node.name
           when 'i'
-            paper_node.stylize :italic
+            swordfish_node.stylize :italic
           when 'b'
-            paper_node.stylize :bold
+            swordfish_node.stylize :bold
           when 'u'
-            paper_node.stylize :underline
+            swordfish_node.stylize :underline
           when 'strike'
-            paper_node.stylize :strikethrough
+            swordfish_node.stylize :strikethrough
           when 'vertAlign'
             if style_node['w:val'] == 'superscript'
-              paper_node.stylize :superscript
+              swordfish_node.stylize :superscript
             elsif style_node['w:val'] == 'subscript'
-              paper_node.stylize :subscript
+              swordfish_node.stylize :subscript
             end
         end
       end
@@ -141,7 +141,7 @@ module Paper
         case run_xml.name
           when 'r'
             # A true run node
-            text = Paper::Node::Text.new
+            text = Swordfish::Node::Text.new
             text.content = run_xml.xpath('./w:t')[0].content
             get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
             texts << text
@@ -149,7 +149,7 @@ module Paper
             # Hyperlink nodes are placed amongst other run nodes, but
             # they themselves also contain runs. Hyperlinks include
             # a relationship ID attribute defining their reference.
-            link = Paper::Node::Hyperlink.new
+            link = Swordfish::Node::Hyperlink.new
             link.href = @relationships[run_xml['r:id']]
             _node_parse_runs(run_xml).each {|r| link.append(r)}
             texts << link
@@ -160,7 +160,7 @@ module Paper
 
     # Parse a paragraph
     def _node_parse_paragraph(node)
-      paragraph = Paper::Node::Paragraph.new
+      paragraph = Swordfish::Node::Paragraph.new
       _node_parse_runs(node).each {|r| paragraph.append(r)}
       paragraph
     end
@@ -170,19 +170,19 @@ module Paper
       # In Office OpenXML, a list is not a distinct element type, but rather a
       # specialized paragraph that references an abstract numbering scheme
       # and includes an indentation level. As a result, the build buffer
-      # must be used to assemble the Paper::Node representation of the list,
+      # must be used to assemble the Swordfish::Node representation of the list,
       # since the only way to tell the list has been fully parsed is to encounter
       # a non-list element.
 
       # Get the list item's abstract numbering and level
-      list_item = Paper::Node::ListItem.new
+      list_item = Swordfish::Node::ListItem.new
       _node_parse_runs(node).each {|r| list_item.append(r)}
       level = node.xpath(".//w:numPr/w:ilvl")[0]['w:val'].to_i
       numbering_scheme = node.xpath(".//w:numPr/w:numId")[0]['w:val'].to_i
 
       # If the build buffer is empty, this is a new list
       unless @buffer
-        @buffer = Paper::Node::List.new
+        @buffer = Swordfish::Node::List.new
         @buffer.stylize @numbering[numbering_scheme][level].to_sym
       end
 
@@ -202,7 +202,7 @@ module Paper
         (level - 1).times do
           target = target.last_list_item.nested_list
         end
-        list = Paper::Node::List.new
+        list = Swordfish::Node::List.new
         list.append list_item
         list.stylize @numbering[numbering_scheme][level].to_sym
         target.last_list_item.append list
@@ -211,7 +211,7 @@ module Paper
 
     # Parse a table
     def _node_parse_table(node)
-      table = Paper::Node::Table.new
+      table = Swordfish::Node::Table.new
       node.xpath("./w:tr").each do |row|
         table.append _node_parse_table_row(row)
       end
@@ -220,7 +220,7 @@ module Paper
 
     # Parse a table row
     def _node_parse_table_row(node)
-      row = Paper::Node::TableRow.new
+      row = Swordfish::Node::TableRow.new
       node.xpath('./w:tc').each do |cell|
         row.append _node_parse_table_cell(cell)
       end
@@ -229,12 +229,12 @@ module Paper
 
     # Parse a table cell
     def _node_parse_table_cell(node)
-      # In a Paper::Node::Table object, the number of table cells must equal the
+      # In a Swordfish::Node::Table object, the number of table cells must equal the
       # total number of rows times the total number of columns; that is, even if
-      # two cells are merged together, there must be a Paper::Node::TableCell for
+      # two cells are merged together, there must be a Swordfish::Node::TableCell for
       # each one. Merges are defined using the "merge_up" and "merge_left" properties.
 
-      cell = Paper::Node::TableCell.new
+      cell = Swordfish::Node::TableCell.new
       extra_cells = []
 
       # Get the inner content of the cell
@@ -252,11 +252,11 @@ module Paper
 
       # Determine whether this cell spans multiple columns. Unlike with vertical merges,
       # a horizontally-merged Office OpenXML cell is only defined once, but is given a gridSpan
-      # property defining the number of columns it spans. Since Paper requires a cell for each
+      # property defining the number of columns it spans. Since Swordfish requires a cell for each
       # column, loop to generate the additional cells, and set their merge_left values appropriately.
       if node.xpath("./w:tcPr/w:gridSpan").length > 0
         node.xpath("./w:tcPr/w:gridSpan")[0]['w:val'].to_i.-(1).times do
-          c = Paper::Node::TableCell.new
+          c = Swordfish::Node::TableCell.new
           c.merge_left = true
           extra_cells << c
         end

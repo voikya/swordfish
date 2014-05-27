@@ -1,6 +1,6 @@
-# Superclass for all Paper::Node objects
+# Superclass for all Swordfish::Node objects
 
-module Paper
+module Swordfish
   module Node
     class Base
 
@@ -10,7 +10,7 @@ module Paper
 
       # Initialize with a blank stylesheet and no children
       def initialize
-        @style = Paper::Stylesheet.new []
+        @style = Swordfish::Stylesheet.new []
         @children = []
       end
 

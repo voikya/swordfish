@@ -1,6 +1,6 @@
 # A table cell node
 
-module Paper
+module Swordfish
   module Node
     class TableCell < Base
 

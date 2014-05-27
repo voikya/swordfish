@@ -1,6 +1,6 @@
 # A list item node
 
-module Paper
+module Swordfish
   module Node
     class ListItem < Base
 
@@ -10,7 +10,7 @@ module Paper
 
       # Return the nested list, or nil if this list item has no nested lists
       def nested_list
-        @children.last.is_a?(Paper::Node::List) ? @children.last : nil
+        @children.last.is_a?(Swordfish::Node::List) ? @children.last : nil
       end
 
     end

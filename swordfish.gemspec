@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
-  s.name = 'paper'
+  s.name = 'swordfish'
   s.version = '0.0.0'
-  s.date = '2014-05-24'
+  s.date = '2014-05-27'
   s.summary = 'A simple library for various word processor formats'
   s.description = 'A simple library for various word processor formats focusing primarily around conversion to HTML'
-  s.homepage = 'https://github.com/voikya/paper'
+  s.homepage = 'https://github.com/voikya/swordfish'
   s.license = 'MIT'
   s.authors = ['Martin Posthumus']
   s.email = 'martin.posthumus@gmail.com'

@@ -1,6 +1,6 @@
 # A paragraph node
 
-module Paper
+module Swordfish
   module Node
     class Paragraph < Base
 

@@ -1,6 +1,6 @@
-# Paper::Stylesheet represents formatting applied to a node
+# Swordfish::Stylesheet represents formatting applied to a node
 
-module Paper
+module Swordfish
   class Stylesheet
     
     # Define all supported values here

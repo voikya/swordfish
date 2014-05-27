@@ -1,6 +1,6 @@
 # A table node
 
-module Paper
+module Swordfish
   module Node
     class Table < Base
 
@@ -26,7 +26,7 @@ module Paper
 
       private
 
-      # A Paper::Node::Table always contains rows*cols cells, even
+      # A Swordfish::Node::Table always contains rows*cols cells, even
       # if some of them are to be merged. This method determines how
       # cells ought to be merged together and then informs each cell
       # of its configuration, so that each cell will then properly know

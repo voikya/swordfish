@@ -1,6 +1,6 @@
 # A list node
 
-module Paper
+module Swordfish
   module Node
     class List < Base
 

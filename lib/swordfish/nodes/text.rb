@@ -1,6 +1,6 @@
 # A generic text node
 
-module Paper
+module Swordfish
   module Node
     class Text < Base
 

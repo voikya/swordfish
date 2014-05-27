@@ -1,6 +1,6 @@
 # A table row node
 
-module Paper
+module Swordfish
   module Node
     class TableRow < Base
 

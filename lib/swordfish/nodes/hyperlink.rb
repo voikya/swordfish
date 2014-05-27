@@ -1,6 +1,6 @@
 # A hyperlink node.
 
-module Paper
+module Swordfish
   module Node
     class Hyperlink < Base
 
