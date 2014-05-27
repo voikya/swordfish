@@ -1,3 +1,5 @@
+# A list item node
+
 module Paper
   module Node
     class ListItem < Base

@@ -2,18 +2,24 @@ require 'zip'
 require 'nokogiri'
 require 'paper/document'
 
+# Paper::DOCX defines a parser for .docx (Office OpenXML) formats
+
 module Paper
   class DOCX
 
-    attr_reader :paper_doc
+    attr_reader :paper_doc   # The Paper::Document corresponding to the parsed document
     
+    # Parse a document and return a Paper::Document object
     def self.open(filepath)
+      # .docx is a zipped file format consisting of several XML files.
+      # Read in the content of each needed file.
       docx_archive = Zip::File.open(filepath)
       document = docx_archive.read 'word/document.xml'
       styles = docx_archive.read 'word/styles.xml'
       numbering = docx_archive.read 'word/numbering.xml'
       relationships = docx_archive.read 'word/_rels/document.xml.rels'
 
+      # Parse the XML files and generate the Paper::Document
       paper_docx = new document, styles, numbering, relationships
       paper_docx.paper_doc
     end
@@ -26,15 +32,21 @@ module Paper
       parse document_xml
     end
 
-  private
+    private
 
+    # Take the contents of the build buffer and flush them into the Paper::Document object.
+    # This buffer is needed for certain docx constructs that consist of multiple top-level
+    # elements but correspond to a single Paper::Node, such as lists.
     def flush
       @paper_doc.append(@buffer) if @buffer
       @buffer = nil
     end
 
+    # Parse the document structure XML
     def parse(document_xml)
       @xml = Nokogiri::XML(document_xml)
+
+      # Iterate over each element node and dispatch it to the appropriate parser
       @xml.xpath('//w:body').children.each do |node|
         case node.name
           when 'p'
@@ -44,15 +56,18 @@ module Paper
               @paper_doc.append _node_parse_paragraph(node)
             else
               # List paragraph
+              # (Don't flush because we need to first ensure the list is fully parsed)
               _node_parse_list(node)
             end
           when 'tbl'
+            flush
             @paper_doc.append _node_parse_table(node)
         end
       end
       flush
     end
 
+    # Parse styles out of a docx element property nodeset (*Pr) and stylize the Paper::Node
     def get_styles_for_node(paper_node, xml_nodeset)
       return unless xml_nodeset
       xml_nodeset.children.each do |style_node|
@@ -75,10 +90,16 @@ module Paper
       end
     end
 
+    # Parse the document styles XML
     def parse_styles(styles_xml)
     end
 
+    # Parse the abstract numbering XML (defining things such as list numbering)
     def parse_numbering(numbering_xml)
+      # The XML maps a numbering ID (numId) to an abstract numbering schema ID (abstractNumId).
+      # The abstract numbering schema defines display formats for each level of indentation (lvl).
+      # This function will load up the relevant data into the @numbering class variable in the form
+      # of a nested hash: @numbering[numbering ID][indentation level] = number format.
       @numbering = {}
       xml = Nokogiri::XML(numbering_xml)
       xml.xpath("//w:num").each do |num|
@@ -94,7 +115,12 @@ module Paper
       end
     end
 
+    # Parse the relationships XML (defining things such as internal references and external links)
     def parse_relationships(relationships_xml)
+      # The XML contains a list of relationships identified by an id. Each relationship includes
+      # a target attribute designating the reference. THis function will load up the relevant
+      # data into the @relationships class variable in the form of a hash:
+      # @relationships[relationship ID] = target URI.
       @relationships = {}
       xml = Nokogiri::XML(relationships_xml)
       xml.css("Relationship").each do |rel| # Nokogiri doesn't seem to like XPath here for some reason
@@ -102,16 +128,27 @@ module Paper
       end
     end
 
+    # NODE PARSERS
+    # Each of the methods below (beginning with '_node') are specialized parsers for handling
+    # a particular type of XML element.
+
+    # Parse one or more runs
     def _node_parse_runs(node)
+      # The 'run' is the basic unit of text in Office OpenXML. A paragraph, table cell, or other
+      # block element may contain one or more runs, and each run has an associated set of styles.
       texts = []
       node.children.each do |run_xml|
         case run_xml.name
-          when 'r' 
+          when 'r'
+            # A true run node
             text = Paper::Node::Text.new
             text.content = run_xml.xpath('./w:t')[0].content
             get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
             texts << text
           when 'hyperlink'
+            # Hyperlink nodes are placed amongst other run nodes, but
+            # they themselves also contain runs. Hyperlinks include
+            # a relationship ID attribute defining their reference.
             link = Paper::Node::Hyperlink.new
             link.href = @relationships[run_xml['r:id']]
             _node_parse_runs(run_xml).each {|r| link.append(r)}
@@ -121,23 +158,37 @@ module Paper
       texts
     end
 
+    # Parse a paragraph
     def _node_parse_paragraph(node)
       paragraph = Paper::Node::Paragraph.new
       _node_parse_runs(node).each {|r| paragraph.append(r)}
       paragraph
     end
 
+    # Parse a list
     def _node_parse_list(node)
+      # In Office OpenXML, a list is not a distinct element type, but rather a
+      # specialized paragraph that references an abstract numbering scheme
+      # and includes an indentation level. As a result, the build buffer
+      # must be used to assemble the Paper::Node representation of the list,
+      # since the only way to tell the list has been fully parsed is to encounter
+      # a non-list element.
+
+      # Get the list item's abstract numbering and level
       list_item = Paper::Node::ListItem.new
       _node_parse_runs(node).each {|r| list_item.append(r)}
       level = node.xpath(".//w:numPr/w:ilvl")[0]['w:val'].to_i
       numbering_scheme = node.xpath(".//w:numPr/w:numId")[0]['w:val'].to_i
 
+      # If the build buffer is empty, this is a new list
       unless @buffer
         @buffer = Paper::Node::List.new
         @buffer.stylize @numbering[numbering_scheme][level].to_sym
       end
 
+      # Compare the level of this list item to the bottommost node in
+      # the build buffer to determine where in the hierarchy to add
+      # this node (i.e., are we dealing with list nesting or not?)
       if @buffer.depth_of_final_node >= level
         # Add sibling to existing list
         target = @buffer
@@ -158,6 +209,7 @@ module Paper
       end
     end
 
+    # Parse a table
     def _node_parse_table(node)
       table = Paper::Node::Table.new
       node.xpath("./w:tr").each do |row|
@@ -166,6 +218,7 @@ module Paper
       table
     end
 
+    # Parse a table row
     def _node_parse_table_row(node)
       row = Paper::Node::TableRow.new
       node.xpath('./w:tc').each do |cell|
@@ -174,16 +227,33 @@ module Paper
       row
     end
 
+    # Parse a table cell
     def _node_parse_table_cell(node)
+      # In a Paper::Node::Table object, the number of table cells must equal the
+      # total number of rows times the total number of columns; that is, even if
+      # two cells are merged together, there must be a Paper::Node::TableCell for
+      # each one. Merges are defined using the "merge_up" and "merge_left" properties.
+
       cell = Paper::Node::TableCell.new
       extra_cells = []
 
+      # Get the inner content of the cell
       node.xpath("./w:p").each do |paragraph|
         cell.append _node_parse_paragraph(paragraph)
       end
+      
+      # Determine whether this cell spans multiple rows. In Office OpenXML,
+      # a table cell is defined in every row, even if the cell is vertically-merged. The representation
+      # of the merged cell within each row is given a vMerge property, with the topmost one also
+      # having a vMerge value of "restart", and the others having no vMerge value.
       if node.xpath("./w:tcPr/w:vMerge").length > 0 && node.xpath("./w:tcPr/w:vMerge")[0]['w:val'].nil?
         cell.merge_up = true
       end
+
+      # Determine whether this cell spans multiple columns. Unlike with vertical merges,
+      # a horizontally-merged Office OpenXML cell is only defined once, but is given a gridSpan
+      # property defining the number of columns it spans. Since Paper requires a cell for each
+      # column, loop to generate the additional cells, and set their merge_left values appropriately.
       if node.xpath("./w:tcPr/w:gridSpan").length > 0
         node.xpath("./w:tcPr/w:gridSpan")[0]['w:val'].to_i.-(1).times do
           c = Paper::Node::TableCell.new
@@ -192,6 +262,7 @@ module Paper
         end
       end
 
+      # Return the generated cell or cells
       if extra_cells.empty?
         return cell
       else

@@ -1,3 +1,5 @@
+# A paragraph node
+
 module Paper
   module Node
     class Paragraph < Base

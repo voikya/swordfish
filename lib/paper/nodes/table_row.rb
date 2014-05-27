@@ -1,3 +1,5 @@
+# A table row node
+
 module Paper
   module Node
     class TableRow < Base

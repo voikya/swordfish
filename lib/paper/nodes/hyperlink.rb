@@ -1,3 +1,5 @@
+# A hyperlink node.
+
 module Paper
   module Node
     class Hyperlink < Base
