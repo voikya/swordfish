@@ -50,8 +50,10 @@ module Swordfish
       @xml.xpath('//w:body').children.each do |node|
         case node.name
           when 'p'
-            if node.xpath('.//w:numPr').length == 0
+            if node.xpath('.//w:numPr').length == 0 && (@buffer.is_a?(Swordfish::Node::List) ? node.xpath('.//w:ind').length.zero? : true)
               # Regular paragraph
+              # (The buffer check makes sure that this isn't an indented paragraph immediately after a list item,
+              # which means we're most likely dealing with a multi-paragraph list item)
               flush
               @swordfish_doc.append _node_parse_paragraph(node)
             elsif node.xpath('.//w:numPr/ancestor::w:pPrChange').length.zero?
@@ -185,6 +187,15 @@ module Swordfish
       # must be used to assemble the Swordfish::Node representation of the list,
       # since the only way to tell the list has been fully parsed is to encounter
       # a non-list element.
+
+      # Handle paragraphs with no level, which represent multi-paragraph list items
+      if node.xpath(".//w:numPr/w:ilvl").length.zero?
+        para = Swordfish::Node::Paragraph.new
+        _node_parse_runs(node).each {|r| para.append(r)}
+        @buffer.last_list_item(:recurse => true).wrap_children(Swordfish::Node::Text, Swordfish::Node::Paragraph)
+        @buffer.last_list_item(:recurse => true).append para
+        return
+      end
 
       # Get the list item's abstract numbering and level
       list_item = Swordfish::Node::ListItem.new

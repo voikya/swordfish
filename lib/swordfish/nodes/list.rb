@@ -23,9 +23,27 @@ module Swordfish
         depth
       end
 
-      # Return the final child list item (no nesting)
-      def last_list_item
-        @children.last
+      # Return the final child list
+      def last_list
+        node = self
+        while node.children && node.last_list_item.nested_list
+          node = node.last_list_item.nested_list
+        end
+        node
+      end
+
+      # Return the final child list item
+      def last_list_item(opts = {})
+        if opts[:recurse]
+          node = self
+          li = @children.last
+          while node.children && node = node.last_list_item.nested_list
+            li = node.children.last
+          end
+          li
+        else
+          @children.last
+        end
       end
 
     end
