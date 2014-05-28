@@ -54,8 +54,10 @@ module Swordfish
               # Regular paragraph
               flush
               @swordfish_doc.append _node_parse_paragraph(node)
-            else
+            elsif node.xpath('.//w:numPr/ancestor::w:pPrChange').length.zero?
               # List paragraph
+              # (must have a numPr node, but cannot have a pPrChange ancestor, since that means
+              # we are just looking at historical changes)
               # (Don't flush because we need to first ensure the list is fully parsed)
               _node_parse_list(node)
             end
@@ -142,7 +144,7 @@ module Swordfish
           when 'r'
             # A true run node
             text = Swordfish::Node::Text.new
-            text.content = run_xml.xpath('./w:t')[0].content
+            text.content = run_xml.xpath('./w:t')[0].content rescue break
             get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
             texts << text
           when 'hyperlink'
@@ -184,22 +186,23 @@ module Swordfish
       unless @buffer
         @buffer = Swordfish::Node::List.new
         @buffer.stylize @numbering[numbering_scheme][level].to_sym
+        @buffer_initial_value = level # Lists may have an arbitrary initial level
       end
 
       # Compare the level of this list item to the bottommost node in
       # the build buffer to determine where in the hierarchy to add
       # this node (i.e., are we dealing with list nesting or not?)
-      if @buffer.depth_of_final_node >= level
+      if @buffer.depth_of_final_node >= level || @buffer.children.empty?
         # Add sibling to existing list
         target = @buffer
-        level.times do
+        (level - @buffer_initial_value).times do
           target = target.last_list_item.nested_list
         end
         target.append list_item
       elsif @buffer.depth_of_final_node < level
         # Add new nested list
         target = @buffer
-        (level - 1).times do
+        (level - @buffer_initial_value- 1).times do
           target = target.last_list_item.nested_list
         end
         list = Swordfish::Node::List.new
