@@ -88,6 +88,12 @@ module Swordfish
             elsif style_node['w:val'] == 'subscript'
               swordfish_node.stylize :subscript
             end
+          when 'rStyle'
+            if style_node['w:val'] == 'Strong'
+              swordfish_node.stylize :strong
+            elsif style_node['w:val'] == 'Emphasis'
+              swordfish_node.stylize :emphasis
+            end
         end
       end
     end
@@ -144,9 +150,13 @@ module Swordfish
           when 'r'
             # A true run node
             text = Swordfish::Node::Text.new
-            text.content = run_xml.xpath('./w:t')[0].content rescue break
-            get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
-            texts << text
+            if run_xml.xpath('./w:t').length > 0
+              # Only examine the run if it includes text codes. The run may also include
+              # things like comment nodes, which should be ignored.
+              text.content = run_xml.xpath('./w:t')[0].content
+              get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
+              texts << text
+            end
           when 'hyperlink'
             # Hyperlink nodes are placed amongst other run nodes, but
             # they themselves also contain runs. Hyperlinks include

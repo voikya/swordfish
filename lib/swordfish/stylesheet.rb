@@ -6,7 +6,7 @@ module Swordfish
     # Define all supported values here
     SUPPORTED_STYLES = [
       # Inline styles
-      :bold, :italic, :underline, :superscript, :subscript, :strikethrough,
+      :bold, :italic, :underline, :superscript, :subscript, :strikethrough, :strong, :emphasis,
       # List enumeration styles
       :bullet, :decimal, :lowerLetter, :lowerRoman
     ]

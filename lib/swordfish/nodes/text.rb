@@ -17,6 +17,8 @@ module Swordfish
         html = "<strike>#{html}</strike>" if @style.strikethrough?
         html = "<sup>#{html}</sup>" if @style.superscript?
         html = "<sub>#{html}</sub>" if @style.subscript?
+        html = "<strong>#{html}</strong>" if @style.strong?
+        html = "<em>#{html}</em>" if @style.emphasis?
         html
       end
 
