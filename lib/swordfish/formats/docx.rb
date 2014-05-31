@@ -8,6 +8,8 @@ module Swordfish
   class DOCX
 
     attr_reader :swordfish_doc   # The Swordfish::Document corresponding to the parsed document
+    attr_reader :docx_archive    # The source archive
+    attr_reader :namespaces      # A hash of XML namespaces used in this doc
     
     # Parse a document and return a Swordfish::Document object
     def self.open(filepath)
@@ -20,11 +22,12 @@ module Swordfish
       relationships = docx_archive.read 'word/_rels/document.xml.rels'
 
       # Parse the XML files and generate the Swordfish::Document
-      swordfish_docx = new document, styles, numbering, relationships
+      swordfish_docx = new docx_archive, document, styles, numbering, relationships
       swordfish_docx.swordfish_doc
     end
 
-    def initialize(document_xml, styles_xml, numbering_xml, relationships_xml)
+    def initialize(archive, document_xml, styles_xml, numbering_xml, relationships_xml)
+      @docx_archive = archive
       @swordfish_doc = Swordfish::Document.new
       parse_styles styles_xml
       parse_numbering numbering_xml
@@ -45,6 +48,7 @@ module Swordfish
     # Parse the document structure XML
     def parse(document_xml)
       @xml = Nokogiri::XML(document_xml)
+      @namespaces = @xml.collect_namespaces
 
       # Iterate over each element node and dispatch it to the appropriate parser
       @xml.xpath('//w:body').children.each do |node|
@@ -138,6 +142,11 @@ module Swordfish
       end
     end
 
+    # Extract an image resource as a binary stream
+    def read_image(image_name)
+      @docx_archive.get_input_stream("word/media/#{image_name}").read
+    end
+
     # NODE PARSERS
     # Each of the methods below (beginning with '_node') are specialized parsers for handling
     # a particular type of XML element.
@@ -151,13 +160,22 @@ module Swordfish
         case run_xml.name
           when 'r'
             # A true run node
-            text = Swordfish::Node::Text.new
             if run_xml.xpath('./w:t').length > 0
               # Only examine the run if it includes text codes. The run may also include
               # things like comment nodes, which should be ignored.
+              text = Swordfish::Node::Text.new
               text.content = run_xml.xpath('./w:t')[0].content
               get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
               texts << text
+            elsif run_xml.xpath('.//pic:pic', :pic => @namespaces['xmlns:pic']).length > 0
+              # An image run
+              image = Swordfish::Node::Image.new
+              relationship_id = run_xml.xpath('.//pic:pic/pic:blipFill/a:blip', :pic => @namespaces['xmlns:pic'], :a => @namespaces['xmlns:a'])[0]['r:embed'] rescue nil
+              if relationship_id
+                image.original_name = @relationships[relationship_id].split('/').last
+                @swordfish_doc.images[image.original_name] = read_image(image.original_name)
+                texts << image
+              end
             end
           when 'hyperlink'
             # Hyperlink nodes are placed amongst other run nodes, but

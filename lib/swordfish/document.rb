@@ -8,17 +8,20 @@ require 'swordfish/nodes/hyperlink'
 require 'swordfish/nodes/table'
 require 'swordfish/nodes/table_row'
 require 'swordfish/nodes/table_cell'
+require 'swordfish/nodes/image'
 
 # Swordfish::Document is the internal representation of a parsed document.
 
 module Swordfish
   class Document
     
-    attr_reader :nodes   # An array of all top-level elements in the document
+    attr_reader :nodes    # An array of all top-level elements in the document
+    attr_accessor :images # Stored image assets
 
     # On initialization, set the nodes list to an empty array
     def initialize
       @nodes = []
+      @images = {}
     end
 
     # Pass in a node and append it to the nodes array
@@ -28,6 +31,16 @@ module Swordfish
       else
         raise ArgumentError, "Object is not a node"
       end
+    end
+
+    # Retrieve an image by name
+    def get_image(name)
+      @images[name]
+    end
+
+    # Save an image to a specified directory
+    def save_image(image, dest)
+      File.open(dest, 'w') { |f| f.write(@images[image]) }
     end
 
     def to_html
