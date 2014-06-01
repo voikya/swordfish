@@ -142,9 +142,12 @@ module Swordfish
       end
     end
 
-    # Extract an image resource as a binary stream
+    # Extract an image resource as a tempfile
     def read_image(image_name)
-      @docx_archive.get_input_stream("word/media/#{image_name}").read
+      tempfile = Tempfile.new(image_name)
+      tempfile.write @docx_archive.get_input_stream("word/media/#{image_name}").read
+      tempfile.close
+      tempfile
     end
 
     # NODE PARSERS

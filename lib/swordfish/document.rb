@@ -40,11 +40,29 @@ module Swordfish
 
     # Save an image to a specified directory
     def save_image(image, dest)
-      File.open(dest, 'w') { |f| f.write(@images[image]) }
+      @images[image].open
+      File.open(dest, 'w') { |f| f.write(@images[image].read) }
+      @images[image].close
+    end
+
+    # Change the value that an image should report its source to be
+    def update_image_path(original_name, new_path)
+      find_nodes_by_type(Swordfish::Node::Image).each do |image_node|
+        if image_node.original_name == original_name
+          image_node.path = new_path
+        end
+      end
     end
 
     def to_html
       @nodes.map(&:to_html).join
+    end
+
+    private
+
+    # Return all nodes of a given type
+    def find_nodes_by_type(klass)
+      @nodes.collect{|n| n.find_nodes_by_type(klass)}.flatten
     end
   end
 end

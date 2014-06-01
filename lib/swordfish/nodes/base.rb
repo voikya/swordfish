@@ -60,6 +60,13 @@ module Swordfish
         end
       end
 
+      # Find all descendant nodes of a given type
+      def find_nodes_by_type(klass)
+        nodes = @children.collect{|n| n.find_nodes_by_type(klass)}.flatten
+        nodes << self if self.is_a?(klass)
+        nodes.compact
+      end
+
     end
 
     class BadContentError < Exception
