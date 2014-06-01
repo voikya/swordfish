@@ -7,7 +7,8 @@ module Swordfish
       attr_accessor :href
 
       def to_html
-        "<a href='#{@href}'>#{@children.map(&:to_html).join}</a>"
+        @href ||= ""
+        "<a href=\"#{CGI::escape(@href)}\">#{@children.map(&:to_html).join}</a>"
       end
 
     end

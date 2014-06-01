@@ -10,7 +10,8 @@ module Swordfish
       end
 
       def to_html
-        html = @content
+        @content ||= ""
+        html = CGI::escapeHTML(@content)
         html = "<i>#{html}</i>" if @style.italic?
         html = "<b>#{html}</b>" if @style.bold?
         html = "<u>#{html}</u>" if @style.underline?

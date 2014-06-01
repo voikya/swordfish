@@ -11,6 +11,7 @@ module Swordfish
       attr_accessor :original_name
       # @path holds a new name for the image that must be assigned explicitly
       attr_accessor :path
+      attr_accessor :caption
 
       # Override Base append because an image node should never have children
       def append(node)
@@ -18,7 +19,8 @@ module Swordfish
       end
 
       def to_html
-        "<img src='#{@path ? @path : @original_name}'>"
+        @caption ||= ""
+        "<img src=\"#{CGI::escape(@path ? @path : @original_name)}\" alt=\"#{CGI::escapeHTML(@caption)}\" title=\"#{CGI::escapeHTML(@caption)}\" />"
       end
 
     end
