@@ -1,4 +1,5 @@
 require 'cgi'
+require 'uri'
 require 'swordfish/stylesheet'
 require 'swordfish/nodes/base'
 require 'swordfish/nodes/text'

@@ -8,7 +8,7 @@ module Swordfish
 
       def to_html
         @href ||= ""
-        "<a href=\"#{CGI::escape(@href)}\">#{@children.map(&:to_html).join}</a>"
+        "<a href=\"#{URI::escape(@href)}\">#{@children.map(&:to_html).join}</a>"
       end
 
     end

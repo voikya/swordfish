@@ -18,8 +18,8 @@ module Swordfish
       docx_archive = Zip::File.open(filepath)
       document = docx_archive.read 'word/document.xml'
       styles = docx_archive.read 'word/styles.xml'
-      numbering = docx_archive.read 'word/numbering.xml'
-      relationships = docx_archive.read 'word/_rels/document.xml.rels'
+      numbering = docx_archive.read('word/numbering.xml') rescue nil
+      relationships = docx_archive.read('word/_rels/document.xml.rels') rescue nil
 
       # Parse the XML files and generate the Swordfish::Document
       swordfish_docx = new docx_archive, document, styles, numbering, relationships
@@ -30,8 +30,8 @@ module Swordfish
       @docx_archive = archive
       @swordfish_doc = Swordfish::Document.new
       parse_styles styles_xml
-      parse_numbering numbering_xml
-      parse_relationships relationships_xml
+      parse_numbering(numbering_xml) if numbering_xml
+      parse_relationships(relationships_xml) if relationships_xml
       parse document_xml
     end
 
@@ -170,7 +170,7 @@ module Swordfish
               text.content = run_xml.xpath('./w:t')[0].content
               get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
               texts << text
-            elsif run_xml.xpath('.//pic:pic', :pic => @namespaces['xmlns:pic']).length > 0
+            elsif @namespaces['xmlns:pic'] && run_xml.xpath('.//pic:pic', :pic => @namespaces['xmlns:pic']).length > 0
               # An image run
               image = Swordfish::Node::Image.new
               relationship_id = run_xml.xpath('.//pic:pic/pic:blipFill/a:blip', :pic => @namespaces['xmlns:pic'], :a => @namespaces['xmlns:a'])[0]['r:embed'] rescue nil
