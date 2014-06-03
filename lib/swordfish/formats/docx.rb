@@ -9,7 +9,6 @@ module Swordfish
 
     attr_reader :swordfish_doc   # The Swordfish::Document corresponding to the parsed document
     attr_reader :docx_archive    # The source archive
-    attr_reader :namespaces      # A hash of XML namespaces used in this doc
     
     # Parse a document and return a Swordfish::Document object
     def self.open(filepath)
@@ -48,7 +47,6 @@ module Swordfish
     # Parse the document structure XML
     def parse(document_xml)
       @xml = Nokogiri::XML(document_xml)
-      @namespaces = @xml.collect_namespaces
 
       # Iterate over each element node and dispatch it to the appropriate parser
       @xml.xpath('//w:body').children.each do |node|
@@ -170,10 +168,10 @@ module Swordfish
               text.content = run_xml.xpath('./w:t')[0].content
               get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
               texts << text
-            elsif @namespaces['xmlns:pic'] && run_xml.xpath('.//pic:pic', :pic => @namespaces['xmlns:pic']).length > 0
+            elsif run_xml.xpath('.//*[name()="pic:pic"]').length > 0
               # An image run
               image = Swordfish::Node::Image.new
-              relationship_id = run_xml.xpath('.//pic:pic/pic:blipFill/a:blip', :pic => @namespaces['xmlns:pic'], :a => @namespaces['xmlns:a'])[0]['r:embed'] rescue nil
+              relationship_id = run_xml.xpath('.//*[name()="pic:pic"]/*[name()="pic:blipFill"]/*[name()="a:blip"]')[0]['r:embed'] rescue nil
               if relationship_id
                 image.original_name = @relationships[relationship_id].split('/').last
                 @swordfish_doc.images[image.original_name] = read_image(image.original_name)
@@ -190,6 +188,17 @@ module Swordfish
             texts << link
         end
       end
+      # Clean up runs by merging them if they have identical styles
+      to_delete = []
+      texts.each_with_index do |text, idx|
+        if idx > 0
+          if text.is_a?(Swordfish::Node::Text) && texts[idx-1].is_a?(Swordfish::Node::Text) && text.style == texts[idx-1].style
+            texts[idx-1].content += text.content
+            to_delete << text
+          end
+        end
+      end
+      texts.reject! {|t| to_delete.include?(t) }
       texts
     end
 

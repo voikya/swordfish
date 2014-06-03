@@ -2,6 +2,8 @@
 
 module Swordfish
   class Stylesheet
+
+    attr_reader :styles
     
     # Define all supported values here
     SUPPORTED_STYLES = [
@@ -21,6 +23,11 @@ module Swordfish
     def merge(styles)
       styles = [styles] unless styles.is_a?(Array)
       @styles |= styles.select{|s| SUPPORTED_STYLES.include?(s)}
+    end
+
+    # Test stylesheets for equality (same styles)
+    def ==(other)
+      @styles.sort == other.styles.sort
     end
     
     # For each supported style, define a boolean method to check its presence
