@@ -157,11 +157,16 @@ module Swordfish
       # The 'run' is the basic unit of text in Office OpenXML. A paragraph, table cell, or other
       # block element may contain one or more runs, and each run has an associated set of styles.
       texts = []
-      node.children.each do |run_xml|
+      # A complex field is a special type of node spanning multiple runs, where most of the runs
+      # designate a special control flow rather than normal text.
+      complex_field = nil
+
+      nodes = node.is_a?(Array) ? node : node.children
+      nodes.each_with_index do |run_xml, idx|
         case run_xml.name
           when 'r'
-            # A true run node
-            if run_xml.xpath('./w:t').length > 0
+            if run_xml.xpath('./w:t').length > 0 && complex_field.nil?
+              # A True run node
               # Only examine the run if it includes text codes. The run may also include
               # things like comment nodes, which should be ignored.
               text = Swordfish::Node::Text.new
@@ -177,6 +182,36 @@ module Swordfish
                 @swordfish_doc.images[image.original_name] = read_image(image.original_name)
                 texts << image
               end
+            elsif run_xml.xpath('./w:fldChar').length > 0 || complex_field
+              # A complex field
+              case
+                when run_xml.xpath('./w:fldChar').length > 0 && run_xml.xpath('./w:fldChar')[0]['w:fldCharType'] == 'begin'
+                  # Start the complex field
+                  complex_field = true
+                when run_xml.xpath('./w:instrText').length > 0
+                  # An instruction run, defining the complex field's behavior
+                  instruction = run_xml.xpath('./w:instrText')[0].content
+                  if instruction =~ /^\s*HYPERLINK/
+                    # A hyperlink
+                    complex_field = Swordfish::Node::Hyperlink.new
+                    complex_field.href = instruction.match(/^\s*HYPERLINK "([^"]+)"/).captures[0]
+                  else
+                    # Anything else
+                    complex_field = Swordfish::Node::Text.new
+                  end
+                when run_xml.xpath('./w:t').length > 0 && complex_field.children.length.zero?
+                  # The textual content
+                  complex_field.append(_node_parse_runs(nodes.to_a[idx..-1]))
+                when run_xml.xpath('./w:fldChar').length > 0 && run_xml.xpath('./w:fldChar')[0]['w:fldCharType'] == 'end'
+                  # End the complex field
+                  if complex_field
+                    texts << complex_field
+                    complex_field = nil
+                  else
+                    # Handle the case where _node_parse_runs gets called from within a complex field
+                    return texts
+                  end
+              end
             end
           when 'hyperlink'
             # Hyperlink nodes are placed amongst other run nodes, but
@@ -189,16 +224,15 @@ module Swordfish
         end
       end
       # Clean up runs by merging them if they have identical styles
-      to_delete = []
-      texts.each_with_index do |text, idx|
-        if idx > 0
-          if text.is_a?(Swordfish::Node::Text) && texts[idx-1].is_a?(Swordfish::Node::Text) && text.style == texts[idx-1].style
-            texts[idx-1].content += text.content
-            to_delete << text
-          end
+      texts = texts.reduce([]) do |memo, run|
+        if memo.length > 0 && memo.last.is_a?(Swordfish::Node::Text) && run.is_a?(Swordfish::Node::Text) && memo.last.style == run.style
+          memo.last.content += run.content
+        else
+          memo << run
         end
+        memo
       end
-      texts.reject! {|t| to_delete.include?(t) }
+
       texts
     end
 
