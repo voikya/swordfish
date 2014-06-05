@@ -12,7 +12,7 @@ module Swordfish
           @children.map(&:to_html).join
         else
           text = @children.map(&:to_html).join
-          "<p>#{text}</p>" unless text.length.zero?
+          "<p>#{text}</p>" unless text =~ /^[[:space:]]*$/
         end
       end
 
