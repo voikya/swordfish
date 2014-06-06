@@ -1,5 +1,5 @@
 require 'swordfish/document'
-require 'swordfish/formats/docx'
+require 'swordfish/formats/docx/document'
 
 module Swordfish
   
@@ -8,7 +8,7 @@ module Swordfish
     extension = (opts[:extension] || filepath.split('.').last).downcase.to_sym
     case extension
       when :docx
-        Swordfish::DOCX.open(filepath)
+        Swordfish::DOCX::Document.open(filepath)
       else
         raise UnsupportedFormatError, "'#{extension}' is not a recognized file format"
     end
