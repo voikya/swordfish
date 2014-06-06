@@ -4,6 +4,7 @@ module Swordfish
   class Stylesheet
 
     attr_reader :styles
+    attr_accessor :font_size
     
     # Define all supported values here
     SUPPORTED_STYLES = [

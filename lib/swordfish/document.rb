@@ -11,6 +11,7 @@ require 'swordfish/nodes/table'
 require 'swordfish/nodes/table_row'
 require 'swordfish/nodes/table_cell'
 require 'swordfish/nodes/image'
+require 'swordfish/nodes/header'
 
 # Swordfish::Document is the internal representation of a parsed document.
 
@@ -56,6 +57,12 @@ module Swordfish
       end
     end
 
+    # Perform various destructive operations that may result in improved output
+    def settings(opts = {})
+      find_headers! if opts[:guess_headers]
+      self
+    end
+
     def to_html
       @nodes.map(&:to_html).join
     end
@@ -65,6 +72,41 @@ module Swordfish
     # Return all nodes of a given type
     def find_nodes_by_type(klass)
       @nodes.collect{|n| n.find_nodes_by_type(klass)}.flatten
+    end
+
+    # Attempt to identify header nodes
+    def find_headers!
+      font_sizes = []
+      # If a paragraph has a single font size throughout, mark it in the array.
+      @nodes.each_with_index do |node, idx|
+        if node.is_a?(Swordfish::Node::Paragraph)
+          para_size = node.style.font_size
+          run_sizes = node.children.collect{ |n| n.style.font_size }.compact
+          if (run_sizes.length == 1) || (run_sizes.length == 0 && para_size)
+            font_sizes << {:idx => idx, :size => run_sizes.first || para_size}
+          end
+        end
+      end
+
+      # For each node with a consistent size, if it is larger than both of
+      # its neighbors, flag it as a header
+      header_sizes = []
+      font_sizes.each_with_index do |f, idx|
+        if idx == 0
+          header_sizes << f[:size] if f[:size] > font_sizes[idx+1][:size]
+        elsif idx != font_sizes.length - 1
+          header_sizes << f[:size] if (f[:size] > font_sizes[idx-1][:size] && f[:size] > font_sizes[idx+1][:size])
+        end
+      end
+      header_sizes = header_sizes.uniq.sort.reverse
+      font_sizes.each do |f|
+        level = header_sizes.find_index(f[:size])
+        if level
+          header = @nodes[f[:idx]].replace_with(Swordfish::Node::Header)
+          header.inform! :level => (level + 1)
+          @nodes[f[:idx]] = header
+        end
+      end
     end
   end
 end

@@ -6,7 +6,7 @@ module Swordfish
 
       attr_accessor :content
       attr_accessor :children
-      attr_reader :style
+      attr_accessor :style
 
       # Initialize with a blank stylesheet and no children
       def initialize
@@ -28,7 +28,15 @@ module Swordfish
 
       # Take a style or styles and add them to this node's stylesheet
       def stylize(styles)
-        @style.merge styles
+        if styles.is_a? Hash
+          # Key/value pairs
+          styles.each do |k, v|
+            @style.send "#{k}=".to_sym, v
+          end
+        else
+          # Boolean values
+          @style.merge styles
+        end
       end
 
       # Every subclass must implement to_html in order to be converted to HTML
@@ -67,6 +75,14 @@ module Swordfish
         nodes.compact
       end
 
+      # Return a clone of this node with a different class
+      def replace_with(klass)
+        if klass <= Swordfish::Node::Base
+          new_node = klass.new
+          new_node.inform!({:style => @style, :children => @children, :content => @content })
+          new_node
+        end
+      end
     end
 
     class BadContentError < Exception

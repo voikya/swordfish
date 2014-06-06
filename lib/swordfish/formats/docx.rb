@@ -74,8 +74,10 @@ module Swordfish
     end
 
     # Parse styles out of a docx element property nodeset (*Pr) and stylize the Swordfish::Node
-    def get_styles_for_node(swordfish_node, xml_nodeset)
+    # If the Swordfish::Node is not provided, return a stylesheet instead
+    def get_styles_for_node(xml_nodeset, swordfish_node = nil)
       return unless xml_nodeset
+      swordfish_node = Swordfish::Node::Base.new if swordfish_node.nil?
       xml_nodeset.children.each do |style_node|
         case style_node.name
           when 'i'
@@ -86,6 +88,11 @@ module Swordfish
             swordfish_node.stylize :underline
           when 'strike'
             swordfish_node.stylize :strikethrough
+          when 'sz'
+            swordfish_node.stylize :font_size => (style_node['w:val'].to_i / 2)
+          when 'szCs' && !swordfish_node.style.font_size
+            # Only use complex script size node if there is no standard size node
+            swordfish_node.stylize :font_size => (style_node['w:val'].to_i / 2)
           when 'vertAlign'
             if style_node['w:val'] == 'superscript'
               swordfish_node.stylize :superscript
@@ -100,10 +107,21 @@ module Swordfish
             end
         end
       end
+      swordfish_node.style
     end
 
     # Parse the document styles XML
     def parse_styles(styles_xml)
+      # This XML document defines a number of styles, which can be referenced by the document
+      # XML in order to quickly reference repeated styles without having to redefine them for
+      # every run. This function will load needed styles into a hash keyed by the style ID.
+      @styles = {}
+      xml = Nokogiri::XML(styles_xml)
+      xml.xpath("//w:style").each do |style|
+        style_id = style['w:styleId']
+        stylesheet = get_styles_for_node(style.xpath(".//w:rPr"))
+        @styles[style_id.to_sym] = stylesheet
+      end
     end
 
     # Parse the abstract numbering XML (defining things such as list numbering)
@@ -171,7 +189,7 @@ module Swordfish
               # things like comment nodes, which should be ignored.
               text = Swordfish::Node::Text.new
               text.content = run_xml.xpath('./w:t')[0].content
-              get_styles_for_node(text, run_xml.xpath('./w:rPr')[0])
+              get_styles_for_node(run_xml.xpath('./w:rPr')[0], text)
               texts << text
             elsif run_xml.xpath('.//*[name()="pic:pic"]').length > 0
               # An image run
@@ -240,6 +258,10 @@ module Swordfish
     def _node_parse_paragraph(node)
       paragraph = Swordfish::Node::Paragraph.new
       _node_parse_runs(node).each {|r| paragraph.append(r)}
+      if node.xpath("./w:pPr/w:pStyle").length > 0
+        style_id = node.xpath("./w:pPr/w:pStyle")[0]['w:val'].to_sym
+        paragraph.style = @styles[style_id] if @styles[style_id]
+      end
       paragraph
     end
 
