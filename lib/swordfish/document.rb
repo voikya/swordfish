@@ -12,6 +12,8 @@ require 'swordfish/nodes/table_row'
 require 'swordfish/nodes/table_cell'
 require 'swordfish/nodes/image'
 require 'swordfish/nodes/header'
+require 'swordfish/nodes/footnote'
+require 'swordfish/nodes/raw'
 
 # Swordfish::Document is the internal representation of a parsed document.
 
@@ -60,6 +62,7 @@ module Swordfish
     # Perform various destructive operations that may result in improved output
     def settings(opts = {})
       find_headers! if opts[:guess_headers]
+      find_footnotes! if opts[:footnotes]
       self
     end
 
@@ -108,5 +111,16 @@ module Swordfish
         end
       end
     end
+
+    # Find all foot/endnotes and number them
+    def find_footnotes!
+      find_nodes_by_type(Swordfish::Node::Footnote).each_with_index do |footnote, idx|
+        footnote.inform!({:index => idx})
+        footnote_content = Swordfish::Node::Raw.new
+        footnote_content.content = footnote.content_to_html
+        @nodes << footnote_content
+      end
+    end
+
   end
 end
