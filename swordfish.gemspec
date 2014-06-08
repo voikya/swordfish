@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = 'swordfish'
   s.version = '0.0.7'
-  s.date = '2014-06-06'
+  s.date = '2014-06-08'
   s.summary = 'A simple library for various word processor formats'
   s.description = 'A simple library for various word processor formats focusing primarily around conversion to HTML'
   s.homepage = 'https://github.com/voikya/swordfish'
@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   s.required_ruby_version = '>= 1.9.3'
-  s.add_development_dependency 'bundler'
-  s.add_runtime_dependency 'nokogiri'
-  s.add_runtime_dependency 'rubyzip'
+  s.add_development_dependency 'bundler', '~> 1'
+  s.add_runtime_dependency 'nokogiri', '~> 1.6', '>= 1.6.0'
+  s.add_runtime_dependency 'rubyzip', '~> 1.1', '>= 1.1.0'
 end
