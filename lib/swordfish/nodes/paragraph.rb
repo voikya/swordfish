@@ -11,7 +11,7 @@ module Swordfish
           # If the only child is an image, don't bother putting it in a P tag
           @children.map(&:to_html).join
         else
-          text = @children.map(&:to_html).join
+          text = @children.map(&:to_html).join.strip
           "<p>#{text}</p>" unless text =~ /^[[:space:]]*$/
         end
       end
