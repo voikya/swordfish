@@ -63,11 +63,18 @@ module Swordfish
     def settings(opts = {})
       find_headers! if opts[:guess_headers]
       find_footnotes! if opts[:footnotes]
+      @generate_full_document = !!opts[:full_document]
       self
     end
 
     def to_html
-      @nodes.map(&:to_html).join
+      if @generate_full_document
+        prefix = "<!DOCTYPE html><html><head><title></title></head><body>"
+        suffix = "</body></html>"
+        prefix + @nodes.map(&:to_html).join + suffix
+      else
+        @nodes.map(&:to_html).join
+      end
     end
 
     private
