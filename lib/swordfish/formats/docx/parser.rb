@@ -69,11 +69,11 @@ module Swordfish
               elsif run_xml.xpath('./w:footnoteReference').length > 0
                 # A footnote reference
                 id = run_xml.xpath('./w:footnoteReference')[0]['w:id'].to_i
-                texts << @footnotes[id]
+                texts << @footnotes[id] if @footnotes[id]
               elsif run_xml.xpath('./w:endnoteReference').length > 0
                 # An endnote reference
                 id = run_xml.xpath('./w:endnoteReference')[0]['w:id'].to_i
-                texts << @endnotes[id]
+                texts << @endnotes[id] if @endnotes[id]
               end
             when 'hyperlink'
               # Hyperlink nodes are placed amongst other run nodes, but
