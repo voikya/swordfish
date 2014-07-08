@@ -74,6 +74,9 @@ module Swordfish
                 # An endnote reference
                 id = run_xml.xpath('./w:endnoteReference')[0]['w:id'].to_i
                 texts << @endnotes[id] if @endnotes[id]
+              elsif run_xml.xpath('./w:br').length > 0
+                # A linebreak run
+                texts << Swordfish::Node::Linebreak.new
               end
             when 'hyperlink'
               # Hyperlink nodes are placed amongst other run nodes, but

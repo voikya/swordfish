@@ -13,6 +13,7 @@ require 'swordfish/nodes/table_cell'
 require 'swordfish/nodes/image'
 require 'swordfish/nodes/header'
 require 'swordfish/nodes/footnote'
+require 'swordfish/nodes/linebreak'
 require 'swordfish/nodes/raw'
 
 # Swordfish::Document is the internal representation of a parsed document.
