@@ -7,22 +7,26 @@ module Swordfish
       attr_accessor :content
       attr_accessor :children
       attr_accessor :style
+      attr_accessor :parent
 
       # Initialize with a blank stylesheet and no children
       def initialize
         @style = Swordfish::Stylesheet.new []
         @children = []
+        @parent = nil
       end
 
       # Append a node or nodes to this node as a child
       def append(node)
         @children ||= []
+        node.parent = self
         @children << node
         @children.flatten!
       end
 
       # Replace a child node at a given index
       def replace(node, idx)
+        node.parent = self
         @children[idx] = node
       end
 
@@ -60,6 +64,7 @@ module Swordfish
       # Wrap all children of type child_class with a new node of type wrapper_class
       def wrap_children(child_class, wrapper_class)
         new_node = wrapper_class.new
+        new_node.parent = self
         new_node.append @children.select{|n| n.is_a? child_class}
         unless new_node.children.empty?
           idx = @children.find_index(new_node.children[0])
@@ -81,6 +86,22 @@ module Swordfish
           new_node = klass.new
           new_node.inform!({:style => @style, :children => @children, :content => @content })
           new_node
+        end
+      end
+
+      # Retrieve this node's next sibling
+      def next_sibling
+        idx = @parent.children.index(self)
+        @parent.children[idx + 1]
+      end
+
+      # Retrieve this node's previous sibling
+      def previous_sibling
+        idx = @parent.children.index(self)
+        if idx > 0
+          @parent.children[idx - 1]
+        else
+          nil
         end
       end
     end

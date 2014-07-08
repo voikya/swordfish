@@ -13,6 +13,7 @@ require 'swordfish/nodes/table_cell'
 require 'swordfish/nodes/image'
 require 'swordfish/nodes/header'
 require 'swordfish/nodes/footnote'
+require 'swordfish/nodes/section'
 require 'swordfish/nodes/raw'
 
 # Swordfish::Document is the internal representation of a parsed document.
@@ -32,6 +33,7 @@ module Swordfish
     # Pass in a node and append it to the nodes array
     def append(node)
       if Swordfish::Node.constants.include? node.class.to_s.split('::').last.to_sym
+        node.parent = self
         @nodes << node
       else
         raise ArgumentError, "Object is not a node"
@@ -116,6 +118,13 @@ module Swordfish
           header.inform! :level => (level + 1)
           @nodes[f[:idx]] = header
         end
+      end
+
+      # Wrap headers and the text after them in sections
+      until find_nodes_by_type(Swordfish::Node::Header).all?{|h| h.is_section_header} do
+        header = find_nodes_by_type(Swordfish::Node::Header).reject{|h| h.is_section_header}.first
+        level = header.level
+        section = Swordfish::Node::Section.new
       end
     end
 

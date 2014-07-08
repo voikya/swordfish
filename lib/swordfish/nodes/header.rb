@@ -5,6 +5,7 @@ module Swordfish
     class Header < Base
 
       attr_accessor :level
+      attr_accessor :is_section_header
 
       def to_html
         raise "Missing header level" unless @level
