@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = 'swordfish'
-  s.version = '0.0.7'
-  s.date = '2014-07-08'
+  s.version = '0.0.8'
+  s.date = '2014-07-09'
   s.summary = 'A simple library for various word processor formats'
   s.description = 'A simple library for various word processor formats focusing primarily around conversion to HTML'
   s.homepage = 'https://github.com/voikya/swordfish'

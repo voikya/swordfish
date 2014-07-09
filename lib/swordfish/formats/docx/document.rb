@@ -182,7 +182,7 @@ module Swordfish
           id = footnote['w:id'].to_i
           f = Swordfish::Node::Footnote.new
           footnote.xpath(".//w:p").each do |p|
-            f.append _node_parse_paragraph(p, :footnotes)
+            f.append _node_parse_runs(p, :footnotes)
           end
           @footnotes[id] = f
         end
