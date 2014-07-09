@@ -139,7 +139,8 @@ module Swordfish
         # If the build buffer is empty, this is a new list
         unless @buffer
           @buffer = Swordfish::Node::List.new
-          @buffer.stylize @numbering[numbering_scheme][level].to_sym
+          # default to bullet in case of bad numbering reference
+          @buffer.stylize @numbering.fetch(numbering_scheme, {}).fetch(level, "bullet").to_sym
           @buffer_initial_value = level # Lists may have an arbitrary initial level
         end
 
@@ -156,7 +157,7 @@ module Swordfish
         elsif @buffer.depth_of_final_node < level
           # Add new nested list
           target = @buffer
-          (level - @buffer_initial_value- 1).times do
+          (level - @buffer_initial_value - 1).times do
             target = target.last_list_item.nested_list
           end
           list = Swordfish::Node::List.new
