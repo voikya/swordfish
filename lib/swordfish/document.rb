@@ -64,6 +64,7 @@ module Swordfish
     def settings(opts = {})
       find_headers! if opts[:guess_headers]
       find_footnotes! if opts[:footnotes]
+      clean_line_breaks! if opts[:smart_br]
       @generate_full_document = !!opts[:full_document]
       self
     end
@@ -127,6 +128,14 @@ module Swordfish
         footnote_content = Swordfish::Node::Raw.new
         footnote_content.content = footnote.content_to_html
         @nodes << footnote_content
+      end
+    end
+
+    # Remove superfluous linebreaks
+    def clean_line_breaks!
+      find_nodes_by_type(Swordfish::Node::Paragraph).each do |paragraph|
+        paragraph.children.delete_at(0) if paragraph.children.first.is_a?(Swordfish::Node::Linebreak)
+        paragraph.children.delete_at(-1) if paragraph.children.last.is_a?(Swordfish::Node::Linebreak)
       end
     end
 
