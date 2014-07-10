@@ -19,6 +19,11 @@ module Swordfish
         nodes.each_with_index do |run_xml, idx|
           case run_xml.name
             when 'r'
+              if run_xml.xpath('./w:br').length > 0
+                # This run contains a linebreak. It may also contain other elements, so this isn't exclusive.
+                texts << Swordfish::Node::Linebreak.new
+              end
+
               if run_xml.xpath('./w:t').length > 0 && complex_field.nil?
                 # A True run node
                 # Only examine the run if it includes text codes. The run may also include
@@ -74,9 +79,6 @@ module Swordfish
                 # An endnote reference
                 id = run_xml.xpath('./w:endnoteReference')[0]['w:id'].to_i
                 texts << @endnotes[id] if @endnotes[id]
-              elsif run_xml.xpath('./w:br').length > 0
-                # A linebreak run
-                texts << Swordfish::Node::Linebreak.new
               end
             when 'hyperlink'
               # Hyperlink nodes are placed amongst other run nodes, but
