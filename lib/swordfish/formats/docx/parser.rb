@@ -48,7 +48,7 @@ module Swordfish
                     if instruction =~ /^\s*HYPERLINK/
                       # A hyperlink
                       complex_field = Swordfish::Node::Hyperlink.new
-                      complex_field.href = instruction.match(/^\s*HYPERLINK "([^"]+)"/).captures[0]
+                      complex_field.href = instruction.match(/^\s*HYPERLINK (?:\\l )?"([^"]+)"/).captures[0]
                     else
                       # Anything else
                       complex_field = Swordfish::Node::Text.new
