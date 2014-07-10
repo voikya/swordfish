@@ -67,7 +67,7 @@ module Swordfish
         @xml.xpath('//w:body').children.each do |node|
           case node.name
             when 'p'
-              if node.xpath('.//w:numPr').length == 0 && (@buffer.is_a?(Swordfish::Node::List) ? node.xpath('.//w:ind').length.zero? : true)
+              if node.xpath('.//w:numPr').length == 0 && (@buffer.is_a?(Swordfish::Node::List) ? node.xpath('.//w:ind[@w:left]').length.zero? : true)
                 # Regular paragraph
                 # (The buffer check makes sure that this isn't an indented paragraph immediately after a list item,
                 # which means we're most likely dealing with a multi-paragraph list item)
