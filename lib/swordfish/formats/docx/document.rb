@@ -67,7 +67,9 @@ module Swordfish
         @xml.xpath('//w:body').children.each do |node|
           case node.name
             when 'p'
-              if node.xpath('.//w:numPr').length == 0 && (@buffer.is_a?(Swordfish::Node::List) ? node.xpath('.//w:ind[@w:left]').length.zero? : true)
+              no_numbering_prop = node.xpath('.//w:numPr').length.zero? || node.xpath('.//w:numPr/w:ilvl | .//w:numPr/w:numId').length.zero?
+              not_multiparagraph_list_item = (@buffer.is_a?(Swordfish::Node::List) ? node.xpath('.//w:ind[@w:left]').length.zero? : true)
+              if no_numbering_prop && not_multiparagraph_list_item
                 # Regular paragraph
                 # (The buffer check makes sure that this isn't an indented paragraph immediately after a list item,
                 # which means we're most likely dealing with a multi-paragraph list item)
