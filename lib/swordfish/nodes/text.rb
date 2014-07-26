@@ -2,7 +2,7 @@
 
 module Swordfish
   module Node
-    class Text < Base
+    class Text < Inline
 
       # Override Base append because a text node should never have children
       def append(node)

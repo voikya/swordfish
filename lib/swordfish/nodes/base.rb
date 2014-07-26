@@ -85,6 +85,9 @@ module Swordfish
       end
     end
 
+    class Inline < Base
+    end
+
     class BadContentError < Exception
     end
   end

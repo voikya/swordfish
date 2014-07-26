@@ -2,7 +2,7 @@
 
 module Swordfish
   module Node
-    class Hyperlink < Base
+    class Hyperlink < Inline
 
       attr_accessor :href
 
