@@ -127,7 +127,7 @@ module Swordfish
         if node.xpath(".//w:numPr/w:ilvl").length.zero?
           para = Swordfish::Node::Paragraph.new
           _node_parse_runs(node).each {|r| para.append(r)}
-          @buffer.last_list_item(:recurse => true).wrap_children(Swordfish::Node::Text, Swordfish::Node::Paragraph)
+          @buffer.last_list_item(:recurse => true).wrap_children(Swordfish::Node::Inline, Swordfish::Node::Paragraph)
           @buffer.last_list_item(:recurse => true).append para
           return
         end
