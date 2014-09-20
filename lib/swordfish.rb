@@ -1,5 +1,6 @@
 require 'swordfish/document'
 require 'swordfish/formats/docx/document'
+require 'swordfish/formats/odt/document'
 
 module Swordfish
   
@@ -9,6 +10,8 @@ module Swordfish
     case extension
       when :docx
         Swordfish::DOCX::Document.open(filepath)
+      when :odt
+        Swordfish::ODT::Document.open(filepath)
       else
         raise UnsupportedFormatError, "'#{extension}' is not a recognized file format"
     end
