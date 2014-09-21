@@ -9,10 +9,22 @@ module Swordfish
       # Parse a paragraph
       def _node_parse_paragraph(node)
         paragraph = Swordfish::Node::Paragraph.new
-        text = Swordfish::Node::Text.new
-        text.content = node.content
+        text = _node_parse_text(node)
         paragraph.append text
         paragraph
+      end
+
+      # Parse text content
+      def _node_parse_text(node)
+        node.children.map do |c|
+          text = Swordfish::Node::Text.new
+          text.content = c.content
+          if c['text:style-name']
+            stylesheet = @styles[c['text:style-name'].to_sym]
+            text.style = stylesheet if stylesheet
+          end
+          text
+        end
       end
 
     end
