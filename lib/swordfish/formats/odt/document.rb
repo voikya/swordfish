@@ -49,6 +49,8 @@ module Swordfish
           case node.name
             when 'p'
               @swordfish_doc.append _node_parse_paragraph(node)
+            when 'list'
+              @swordfish_doc.append _node_parse_list(node)
           end
         end
       end
@@ -60,6 +62,11 @@ module Swordfish
         # given ODT doc.
         @styles = {}
         xml = Nokogiri::XML(xml_doc)
+        parse_text_styles(xml)
+        parse_list_styles(xml)
+      end
+
+      def parse_text_styles(xml)
         xml.xpath('//style:style[@style:name]').each do |style|
           name = style['style:name']
           swordfish_node = Swordfish::Node::Base.new
@@ -83,8 +90,32 @@ module Swordfish
               end
             end
           end
-          puts swordfish_node.style.inspect
           @styles[name.to_sym] = swordfish_node.style
+        end
+      end
+
+      def parse_list_styles(xml)
+        xml.xpath('//text:list-style[@style:name]').each do |style|
+          name = style['style:name'].to_sym
+          @styles[name] = {}
+          style.children.each do |list_level_style|
+            level = list_level_style['text:level'].to_i
+            swordfish_node = Swordfish::Node::Base.new
+            case list_level_style.name
+              when 'list-level-style-bullet'
+                swordfish_node.stylize(:bullet)
+              when 'list-level-style-number'
+                case list_level_style['style:num-format']
+                  when '1'
+                    swordfish_node.stylize(:decimal)
+                  when 'i'
+                    swordfish_node.stylize(:lowerRoman)
+                  when 'a'
+                    swordfish_node.stylize(:lowerLetter)
+                end
+            end
+            @styles[name][level] = swordfish_node.style
+          end
         end
       end
     end

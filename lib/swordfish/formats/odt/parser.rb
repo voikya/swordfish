@@ -27,6 +27,35 @@ module Swordfish
         end
       end
 
+      # Parse a list
+      def _node_parse_list(node, nesting_opts = {})
+        nesting_opts[:depth] ||= 1
+        nesting_opts[:style] ||= node['text:style-name'].to_sym
+        list = Swordfish::Node::List.new
+        list.style = @styles[nesting_opts[:style]][nesting_opts[:depth]]
+        node.xpath('./text:list-item').each do |list_item_xml|
+          list_item = Swordfish::Node::ListItem.new
+          list_item_xml.children.each do |c|
+            case c.name
+              when 'p'
+                para = _node_parse_paragraph(c)
+                # If this is the only child of type paragraph, skip the paragraph
+                # and just append its children directly to the list item
+                if list_item_xml.xpath('./text:p').length == 1
+                  list_item.append para.children
+                else
+                  list_item.append para
+                end
+              when 'list'
+                nesting_opts[:depth] += 1
+                list_item.append _node_parse_list(c, nesting_opts)
+            end
+          end
+          list.append list_item
+        end
+        list
+      end
+
     end
   end
 end
