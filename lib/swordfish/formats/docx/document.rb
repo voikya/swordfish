@@ -139,6 +139,8 @@ module Swordfish
           stylesheet = get_styles_for_node(style.xpath(".//w:rPr"))
           @styles[style_id.to_sym] = stylesheet
         end
+        # Parse the default stylesheet
+        @styles[nil] = get_styles_for_node(xml.xpath(".//w:rPrDefault/w:rPr"))
       end
 
       # Parse the abstract numbering XML (defining things such as list numbering)

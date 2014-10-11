@@ -99,9 +99,10 @@ module Swordfish
           end
         end
       end
+      return if font_sizes.length.zero?
 
-      # For each node with a consistent size, if it is larger than both of
-      # its neighbors, flag it as a header
+      # For each node with a consistent size, if it is larger than its next
+      # sibling node, flag it as a header
       header_sizes = []
       font_sizes.each_with_index do |f, idx|
         if idx == 0

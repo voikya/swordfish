@@ -110,6 +110,8 @@ module Swordfish
         if node.xpath("./w:pPr/w:pStyle").length > 0
           style_id = node.xpath("./w:pPr/w:pStyle")[0]['w:val'].to_sym
           paragraph.style = @styles[style_id] if @styles[style_id]
+        else
+          paragraph.style = @styles[nil]
         end
         paragraph
       end
