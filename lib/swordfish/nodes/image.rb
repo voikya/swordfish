@@ -1,3 +1,5 @@
+require 'uri'
+
 # An image node
 # Actual image data is stored at the document level, and can be
 # retrieved by calling get_image(image_image) on the document
@@ -20,9 +22,9 @@ module Swordfish
 
       def to_html
         @caption ||= ""
-        "<img src=\"#{CGI::escape(@path ? @path : @original_name)}\" alt=\"#{CGI::escapeHTML(@caption)}\" title=\"#{CGI::escapeHTML(@caption)}\" />"
+        src = URI::escape(@path ? @path : @original_name)
+        "<img src=\"#{src}\" alt=\"#{CGI::escapeHTML(@caption)}\" title=\"#{CGI::escapeHTML(@caption)}\" />"
       end
-
     end
   end
 end
